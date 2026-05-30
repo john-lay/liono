@@ -6,6 +6,9 @@ const GRAVITY := -25.0
 const TURN_SPEED := 12.0
 const ANIM_BLEND := 0.15
 
+# Adjust in the Inspector if the model visual floats or sinks into the floor.
+export var visual_y_offset: float = 0.0
+
 var velocity := Vector3.ZERO
 var camera_pivot: Spatial = null
 var lock_target: Spatial = null
@@ -14,25 +17,30 @@ var _anim: AnimationPlayer = null
 var _current_anim := ""
 
 func _ready() -> void:
-	_anim = _find_animation_player(self)
+	var visual := get_node_or_null("Liono") as Spatial
+	if visual:
+		visual.translation.y = visual_y_offset
 
-# Walk the subtree to find the AnimationPlayer regardless of FBX import structure.
-func _find_animation_player(node: Node) -> AnimationPlayer:
-	if node is AnimationPlayer:
-		return node as AnimationPlayer
-	for child in node.get_children():
-		var result := _find_animation_player(child)
-		if result:
-			return result
-	return null
+	# find_node searches the full subtree regardless of scene ownership.
+	_anim = find_node("AnimationPlayer", true, false) as AnimationPlayer
+	if _anim:
+		print("[Player] AnimationPlayer: ", _anim.get_path())
+		print("[Player] Animations: ", _anim.get_animation_list())
+		_play("Idle")
+	else:
+		print("[Player] WARNING: no AnimationPlayer found in scene tree")
 
-# Blender FBX exports sometimes prefix animation names with the armature name.
+# Handles bare names ("Run"), hyphen/underscore variants, and Blender armature prefixes.
 func _resolve_anim(name: String) -> String:
 	if _anim.has_animation(name):
 		return name
-	for prefix in ["Armature|", "Liono|", "mixamorig:"]:
-		if _anim.has_animation(prefix + name):
-			return prefix + name
+	var us := name.replace("-", "_")
+	if _anim.has_animation(us):
+		return us
+	for prefix in ["Armature|", "Liono|"]:
+		for candidate in [name, us]:
+			if _anim.has_animation(prefix + candidate):
+				return prefix + candidate
 	return name
 
 func _play(name: String) -> void:

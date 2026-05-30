@@ -6,13 +6,13 @@
 
 [sub_resource type="Environment" id=1]
 background_mode = 1
-background_color = Color( 0.08, 0.08, 0.12, 1 )
-ambient_light_color = Color( 0.4, 0.4, 0.45, 1 )
-ambient_light_energy = 0.5
+background_color = Color( 0.18, 0.18, 0.25, 1 )
+ambient_light_color = Color( 0.9, 0.9, 1.0, 1 )
+ambient_light_energy = 1.0
 fog_enabled = true
-fog_color = Color( 0.08, 0.08, 0.12, 1 )
-fog_depth_begin = 15.0
-fog_depth_end = 40.0
+fog_color = Color( 0.18, 0.18, 0.25, 1 )
+fog_depth_begin = 20.0
+fog_depth_end = 50.0
 
 [sub_resource type="PlaneMesh" id=2]
 size = Vector2( 40, 40 )
@@ -27,6 +27,7 @@ environment = SubResource( 1 )
 
 [node name="Sun" type="DirectionalLight" parent="."]
 rotation_degrees = Vector3( -55, 45, 0 )
+light_energy = 1.4
 shadow_enabled = true
 
 [node name="Floor" type="StaticBody" parent="."]
