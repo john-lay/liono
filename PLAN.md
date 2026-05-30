@@ -34,11 +34,27 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 ## Open Issues
 
-### Issue 1 — Animation stretching (STILL BLOCKED)
+### Issue 1 — GLB scale + textures (IN PROGRESS)
 
-FBX re-exports from Blender continue to produce stretched/flickering meshes in Godot 3's FBX importer. Root cause not yet confirmed — likely incorrect bone axis or scale settings in the Blender FBX export. Player is currently T-pose only (`Liono.fbx` base mesh, no AnimationPlayer).
+FBX abandoned. Switched to GLB via **https://mixamo2gltf.com/** — combines Mixamo animations into a single GLB with all actions. Animations load correctly in Godot.
 
-**Next step:** Export from Blender as `.glb` (GLTF2) instead of FBX. Godot 3 handles Blender `.glb` reliably. Export settings: Y Forward, Z Up, Apply Transform checked, All Actions checked.
+**Current workaround in `Player.gd`:** `visual.scale = Vector3(0.01, 0.01, 0.01)` — the GLB is exported at centimetre scale (unapplied Blender armature transform).
+
+**Textures:** messed up in current export — GLB likely missing embedded textures.
+
+**Proper fix (re-export from mixamo2gltf):**
+1. In Blender: select Armature → `Ctrl+A → Apply All Transforms` before exporting, so scale is baked
+2. GLB export: set Textures → `Automatic` (embed) to include textures in the `.glb`
+3. Once fixed: remove `visual.scale` hack and re-tune `visual_y_offset`
+
+**GLB structure (Godot 3 import):**
+```
+liono.glb
+  Node2 (Spatial) — armature root; has z-offset 6.534 zeroed in code
+    Skeleton
+  AnimationPlayer — clip names: LionoIdle_3, LionoRun_7, LionoJump_4, etc.
+```
+Animation lookup uses keyword matching (`_find_anim`) so `"Idle"` → `"LionoIdle_3"` — robust to suffix changes on re-export.
 
 ---
 
@@ -58,23 +74,24 @@ FBX re-exports from Blender continue to produce stretched/flickering meshes in G
 
 ## Assets
 
-**Model:** `assets/models/Liono.fbx` — rigged character mesh + skeleton  
+**Model:** `assets/models/liono.glb` — all animations combined via https://mixamo2gltf.com/  
 **Blender source:** `assets/models/Liono.blend`
 
-**Animations** (each a separate FBX — all also copied to `godot/assets/models/`):
+**Animations (all in liono.glb):**
 
-| File | State |
-|---|---|
-| `Liono@Idle.fbx` | Standing still |
-| `Liono@Walk.fbx` | Unused in free-cam mode; kept for Z-target walking |
-| `Liono@Run.fbx` | Default forward movement |
-| `Liono@Jump.fbx` | One-shot airborne |
-| `Liono@Walk-Backwards.fbx` | Z-target locked, moving back |
-| `Liono@Left-Turn.fbx` | Z-target locked, strafing left |
-| `Liono@Right-Turn.fbx` | Z-target locked, strafing right |
-| `Liono@Start-Climbing-Ladder.fbx` | Transition onto ladder |
-| `Liono@Climbing-Ladder.fbx` | Looping climb |
-| `Liono@Climbing-To-Top.fbx` | Dismount at top |
+| Keyword | GLB clip name | Use |
+|---|---|---|
+| `Idle` | `LionoIdle_3` | Standing still |
+| `Walk` | `LionoWalk_9` | Z-target walking |
+| `Walking` | `LionoWalking_11` | Free-cam walk (if needed) |
+| `Run` | `LionoRun_7` | Default movement |
+| `Jump` | `LionoJump_4` | One-shot airborne |
+| `Walk-Backwards` | `LionoWalk-Backwards_10` | Z-target back |
+| `Left-Turn` | `LionoLeft-Turn_5` | Z-target strafe left |
+| `Right-Turn` | `LionoRight-Turn_6` | Z-target strafe right |
+| `Start-Climbing-Ladder` | `LionoStart-Climbing-Ladder_8` | Ladder entry |
+| `Climbing-Ladder` | `LionoClimbing-Ladder_1` | Ladder loop |
+| `Climbing-To-Top` | `LionoClimbing-To-Top_2` | Ladder dismount |
 
 ---
 

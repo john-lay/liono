@@ -10,27 +10,43 @@ export var visual_y_offset: float = 0.5
 var velocity := Vector3.ZERO
 var camera_pivot: Spatial = null
 
+var _anim: AnimationPlayer = null
+var _current_anim := ""
+
 func _ready() -> void:
 	var visual := get_node_or_null("Liono") as Spatial
 	if visual:
+		visual.scale = Vector3(0.01, 0.01, 0.01)
 		visual.translation.y = visual_y_offset
-		_enable_lighting(visual)
+		var node2 := visual.get_node_or_null("Node2") as Spatial
+		if node2:
+			node2.translation = Vector3.ZERO
 
-# Strips flags_unshaded from every surface material on the character so scene
-# lights actually reach it. Duplicates each material to avoid touching the shared asset.
-func _enable_lighting(node: Node) -> void:
-	if node is MeshInstance:
-		var mi := node as MeshInstance
-		for i in mi.get_surface_material_count():
-			var mat := mi.get_surface_material(i)
-			if not mat and mi.mesh:
-				mat = mi.mesh.surface_get_material(i)
-			if mat is SpatialMaterial:
-				var copy := (mat as SpatialMaterial).duplicate() as SpatialMaterial
-				copy.albedo_color = Color(2.0, 2.0, 2.0, 1.0)
-				mi.set_surface_material(i, copy)
-	for child in node.get_children():
-		_enable_lighting(child)
+	_anim = find_node("AnimationPlayer", true, false) as AnimationPlayer
+	if _anim:
+		_play("Idle")
+	else:
+		print("[Player] ERROR: no AnimationPlayer found")
+
+# Finds the first animation whose name contains the keyword (case-insensitive).
+# Robust against Godot appending _1, _2 suffixes to GLB animation names.
+func _find_anim(keyword: String) -> String:
+	if _anim == null:
+		return ""
+	var kw := keyword.to_lower()
+	for anim_name in _anim.get_animation_list():
+		if kw in anim_name.to_lower():
+			return anim_name
+	return ""
+
+func _play(keyword: String) -> void:
+	if _anim == null or _current_anim == keyword:
+		return
+	var anim_name := _find_anim(keyword)
+	if anim_name == "":
+		return
+	_anim.play(anim_name)
+	_current_anim = keyword
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -61,3 +77,10 @@ func _physics_process(delta: float) -> void:
 		velocity.y = JUMP_IMPULSE
 
 	velocity = move_and_slide(velocity, Vector3.UP)
+	_update_animation(input)
+
+func _update_animation(input: Vector2) -> void:
+	if not is_on_floor():
+		_play("Jump")
+		return
+	_play("Run" if input.length() > 0.05 else "Idle")

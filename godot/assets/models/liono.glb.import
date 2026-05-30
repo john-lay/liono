@@ -2,12 +2,12 @@
 
 importer="scene"
 type="PackedScene"
-path="res://.import/Liono@Walk.fbx-c7e6511b528ef790d5b2f3b890ab47c5.scn"
+path="res://.import/liono.glb-c6a5533aa83f05f0e50cdd86038ec6c4.scn"
 
 [deps]
 
-source_file="res://assets/models/Liono@Walk.fbx"
-dest_files=[ "res://.import/Liono@Walk.fbx-c7e6511b528ef790d5b2f3b890ab47c5.scn" ]
+source_file="res://assets/models/liono.glb"
+dest_files=[ "res://.import/liono.glb-c6a5533aa83f05f0e50cdd86038ec6c4.scn" ]
 
 [params]
 
