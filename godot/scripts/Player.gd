@@ -89,11 +89,16 @@ func _load_clip(desired: String, path: String) -> void:
 	for raw in ap.get_animation_list():
 		if raw == "RESET":
 			continue
-		var anim := ap.get_animation(raw)
+		# Duplicate so the copy is independent before we free the source instance.
+		var anim := ap.get_animation(raw).duplicate(true) as Animation
 		if _anim.has_animation(desired):
 			_anim.remove_animation(desired)
 		_anim.add_animation(desired, anim)
-		print("[Player] Loaded '", raw, "' as '", desired, "'")
+		# Print first two track paths so we can verify they match the base skeleton.
+		var tc := anim.get_track_count()
+		print("[Player] '", desired, "' tracks:", tc,
+			"  [0]=", str(anim.track_get_path(0)) if tc > 0 else "n/a",
+			"  [1]=", str(anim.track_get_path(1)) if tc > 1 else "n/a")
 		break
 	inst.free()
 
