@@ -1,13 +1,48 @@
 extends KinematicBody
 
-const SPEED = 7.0
-const JUMP_IMPULSE = 10.0
-const GRAVITY = -25.0
-const TURN_SPEED = 12.0
+const SPEED := 7.0
+const JUMP_IMPULSE := 10.0
+const GRAVITY := -25.0
+const TURN_SPEED := 12.0
+const ANIM_BLEND := 0.15
 
 var velocity := Vector3.ZERO
 var camera_pivot: Spatial = null
 var lock_target: Spatial = null
+
+var _anim: AnimationPlayer = null
+var _current_anim := ""
+
+func _ready() -> void:
+	_anim = _find_animation_player(self)
+
+# Walk the subtree to find the AnimationPlayer regardless of FBX import structure.
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+	for child in node.get_children():
+		var result := _find_animation_player(child)
+		if result:
+			return result
+	return null
+
+# Blender FBX exports sometimes prefix animation names with the armature name.
+func _resolve_anim(name: String) -> String:
+	if _anim.has_animation(name):
+		return name
+	for prefix in ["Armature|", "Liono|", "mixamorig:"]:
+		if _anim.has_animation(prefix + name):
+			return prefix + name
+	return name
+
+func _play(name: String) -> void:
+	if _anim == null or _current_anim == name:
+		return
+	var resolved := _resolve_anim(name)
+	if not _anim.has_animation(resolved):
+		return
+	_anim.play(resolved, ANIM_BLEND)
+	_current_anim = name
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -45,3 +80,22 @@ func _physics_process(delta: float) -> void:
 		velocity.y = JUMP_IMPULSE
 
 	velocity = move_and_slide(velocity, Vector3.UP)
+	_update_animation(input)
+
+func _update_animation(input: Vector2) -> void:
+	if not is_on_floor():
+		_play("Jump")
+		return
+	if lock_target != null:
+		if input.length() < 0.05:
+			_play("Idle")
+		elif input.y < -0.3:
+			_play("Walk-Backwards")
+		elif input.x < -0.3:
+			_play("Left-Turn")
+		elif input.x > 0.3:
+			_play("Right-Turn")
+		else:
+			_play("Idle")
+	else:
+		_play("Run" if input.length() > 0.05 else "Idle")
