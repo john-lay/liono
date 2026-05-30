@@ -24,43 +24,27 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | Phase | Status | Notes |
 |---|---|---|
 | Phase 1 — Config | ✅ Done | project.godot, input actions, folder structure |
-| Phase 2 — Animations | ⚠️ Blocked | See open issues #1 below |
+| Phase 2 — Animations | ⚠️ Blocked | FBX re-exports still stretch/flicker; T-pose only for now |
 | Phase 3 — Player movement | ✅ Done | WASD + gravity + jump working |
 | Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm not yet added |
-| Phase 5 — Level | 🔶 Partial | Floor + lighting done; geometry/fog not tuned |
+| Phase 5 — Level | 🔶 Partial | Floor + lighting balanced; geometry not yet added |
 | Phase 6 — Ladder | ❌ Not started | |
 
 ---
 
 ## Open Issues
 
-### Issue 1 — Animation stretching and flickering (BLOCKER)
+### Issue 1 — Animation stretching (STILL BLOCKED)
 
-**Symptom:** Running the game shows Liono with all meshes stretched and flickering. No animation state visibly playing.
+FBX re-exports from Blender continue to produce stretched/flickering meshes in Godot 3's FBX importer. Root cause not yet confirmed — likely incorrect bone axis or scale settings in the Blender FBX export. Player is currently T-pose only (`Liono.fbx` base mesh, no AnimationPlayer).
 
-**Root cause (working hypothesis):** Loading `Animation` resources from separate `@*.fbx` imported scenes and adding them to the `AnimationPlayer` inside `Liono@Idle.fbx` fails because the bone track `NodePath`s in the loaded animations do not resolve correctly against the `Liono@Idle.fbx` skeleton. Specifically, the `AnimationPlayer.root_node` in each source scene may differ, making the copied tracks target non-existent nodes.
-
-**What has been tried:**
-- Loading animations via `_load_clip()` in `Player.gd` `_ready()` — broken
-- Adding `.duplicate(true)` to avoid sharing the resource object across freed instances — still broken
-- Both approaches used `find_node("AnimationPlayer", true, false)` inside each temporarily instanced `@*.fbx` scene
-
-**Debug step needed:** Run the game and paste the Output panel content. The `[Player] '...' tracks:` lines will show the actual bone path prefix (e.g. `Armature/Skeleton:` vs `Skeleton:`). A mismatch between the base scene and loaded clips explains the stretching.
-
-**Recommended next fix (in order of preference):**
-1. **Re-export from Blender** — Open `assets/models/Liono.blend` and export one single `Liono.fbx` with all NLA tracks/actions baked in. Godot imports everything into one AnimationPlayer automatically. This is the cleanest solution and eliminates the multi-file problem entirely.
-2. **Remap track paths at load time** — If re-export is not possible, read the track paths from the Output panel, compare them between `@Idle.fbx` and another clip, and remap them in `_load_clip()` using `anim.track_set_path(i, remapped_path)`.
-3. **One instance per animation (swap-and-hide)** — Instance each `@*.fbx` as a child of Player, make all invisible, show only the active one each frame. Avoids AnimationPlayer merging entirely but is expensive.
+**Next step:** Export from Blender as `.glb` (GLTF2) instead of FBX. Godot 3 handles Blender `.glb` reliably. Export settings: Y Forward, Z Up, Apply Transform checked, All Actions checked.
 
 ---
 
 ### Issue 2 — Legs partially in the ground
 
-**Symptom:** Liono's feet appear slightly below the floor surface.
-
-**Cause:** The FBX model's visual origin may not be at foot level. The `KinematicBody` settles with its origin at y = 0 (floor level), and the Liono mesh node has no y offset.
-
-**Fix:** In the Godot editor Inspector, select the `Player` node in the running scene, find `visual_y_offset` (an export var in `Player.gd`) and drag it up until the feet sit on the floor. Once the correct value is found, hard-code it into `Player.gd` as the default.
+**Status: RESOLVED.** `visual_y_offset` tuned to `0.5` in `Player.gd`.
 
 ---
 
@@ -143,15 +127,15 @@ godot/
 
 ### Phase 2 — Import & Rig the Player ⚠️
 
-**Intended design:**
-- Visual base: instance `Liono@Idle.fbx` (guaranteed AnimationPlayer)
-- Other clips loaded at runtime in `Player.gd _ready()` from each `@*.fbx`
-- Loop flags set per-clip in code (`LOOPING` constant array)
+**Current design (swap-and-hide):**
+- `Liono@Idle.fbx` instanced in scene tree as "Liono" — the Idle visual
+- All other `@*.fbx` files instanced programmatically in `_ready()`, hidden
+- `_play(name)` hides current node, shows new node, calls `ap.play(raw)` on it
+- Loop flags set per-clip; Jump is one-shot; Idle/Run/Climbing loop
 - Animation driven by `_update_animation()` from velocity + lock-on state
 
-**Current blocker:** See Issue 1 above.
-
-**AnimationTree state machine (intended, not yet implemented):**
+**No AnimationTree state machine yet — direct play() calls only.**
+**State machine (for later, if needed):**
 ```
 [Idle] <---> [Run]
                |

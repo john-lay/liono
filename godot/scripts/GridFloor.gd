@@ -1,9 +1,9 @@
 extends MeshInstance
 
 const SIZE := 64
-const LIGHT := Color(0.92, 0.92, 0.92)
-const DARK := Color(0.78, 0.78, 0.78)
-const LINE := Color(0.35, 0.35, 0.35)
+const LIGHT := Color(0.50, 0.50, 0.50)
+const DARK := Color(0.38, 0.38, 0.38)
+const LINE := Color(0.18, 0.18, 0.18)
 
 func _ready() -> void:
 	var img := Image.new()

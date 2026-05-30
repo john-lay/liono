@@ -7,8 +7,7 @@
 [sub_resource type="Environment" id=1]
 background_mode = 1
 background_color = Color( 0.18, 0.18, 0.25, 1 )
-ambient_light_color = Color( 0.9, 0.9, 1.0, 1 )
-ambient_light_energy = 1.0
+ambient_light_color = Color( 0.9, 0.9, 1, 1 )
 fog_enabled = true
 fog_color = Color( 0.18, 0.18, 0.25, 1 )
 fog_depth_begin = 20.0
@@ -26,7 +25,7 @@ extents = Vector3( 20, 0.05, 20 )
 environment = SubResource( 1 )
 
 [node name="Sun" type="DirectionalLight" parent="."]
-rotation_degrees = Vector3( -55, 45, 0 )
+transform = Transform( 0.707107, -0.579228, 0.40558, 0, 0.573576, 0.819152, -0.707107, -0.579228, 0.40558, 0, 0, 0 )
 light_energy = 1.4
 shadow_enabled = true
 
@@ -45,7 +44,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 
 [node name="CameraRig" type="Spatial" parent="."]
 script = ExtResource( 2 )
-target_path = NodePath( "../Player" )
+target_path = NodePath("../Player")
 
 [node name="CameraPivot" type="Spatial" parent="CameraRig"]
 
