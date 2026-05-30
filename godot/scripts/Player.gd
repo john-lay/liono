@@ -6,7 +6,7 @@ const GRAVITY := -25.0
 const TURN_SPEED := 12.0
 const ANIM_BLEND := 0.15
 
-# Adjust in the Inspector if the model visual floats or sinks into the floor.
+# Adjust in the Inspector if the model floats or sinks into the floor.
 export var visual_y_offset: float = 0.0
 
 var velocity := Vector3.ZERO
@@ -16,40 +16,93 @@ var lock_target: Spatial = null
 var _anim: AnimationPlayer = null
 var _current_anim := ""
 
+# Clips that should loop continuously.
+const LOOPING := ["Idle", "Walk", "Run", "Walk-Backwards", "Left-Turn", "Right-Turn", "Climbing-Ladder"]
+
+# Each remaining animation loaded from its own FBX at startup.
+const CLIP_FILES := {
+	"Walk":                  "res://assets/models/Liono@Walk.fbx",
+	"Run":                   "res://assets/models/Liono@Run.fbx",
+	"Jump":                  "res://assets/models/Liono@Jump.fbx",
+	"Walk-Backwards":        "res://assets/models/Liono@Walk-Backwards.fbx",
+	"Left-Turn":             "res://assets/models/Liono@Left-Turn.fbx",
+	"Right-Turn":            "res://assets/models/Liono@Right-Turn.fbx",
+	"Start-Climbing-Ladder": "res://assets/models/Liono@Start-Climbing-Ladder.fbx",
+	"Climbing-Ladder":       "res://assets/models/Liono@Climbing-Ladder.fbx",
+	"Climbing-To-Top":       "res://assets/models/Liono@Climbing-To-Top.fbx",
+}
+
 func _ready() -> void:
 	var visual := get_node_or_null("Liono") as Spatial
 	if visual:
 		visual.translation.y = visual_y_offset
 
-	# find_node searches the full subtree regardless of scene ownership.
+	# The visual is Liono@Idle.fbx which already contains an AnimationPlayer.
 	_anim = find_node("AnimationPlayer", true, false) as AnimationPlayer
-	if _anim:
-		print("[Player] AnimationPlayer: ", _anim.get_path())
-		print("[Player] Animations: ", _anim.get_animation_list())
-		_play("Idle")
-	else:
-		print("[Player] WARNING: no AnimationPlayer found in scene tree")
+	if not _anim:
+		print("[Player] ERROR: no AnimationPlayer found")
+		return
 
-# Handles bare names ("Run"), hyphen/underscore variants, and Blender armature prefixes.
-func _resolve_anim(name: String) -> String:
-	if _anim.has_animation(name):
-		return name
-	var us := name.replace("-", "_")
-	if _anim.has_animation(us):
-		return us
-	for prefix in ["Armature|", "Liono|"]:
-		for candidate in [name, us]:
-			if _anim.has_animation(prefix + candidate):
-				return prefix + candidate
-	return name
+	print("[Player] AnimationPlayer at: ", _anim.get_path())
+	print("[Player] Base clips: ", _anim.get_animation_list())
+
+	# Normalise the existing clip to the logical name "Idle".
+	_ensure_named("Idle")
+
+	# Load every other clip from its own FBX file.
+	for logical_name in CLIP_FILES:
+		_load_clip(logical_name, CLIP_FILES[logical_name])
+
+	# Apply loop flags.
+	for clip in _anim.get_animation_list():
+		var anim := _anim.get_animation(clip)
+		anim.loop = clip in LOOPING
+
+	print("[Player] Ready. Clips: ", _anim.get_animation_list())
+	_play("Idle")
+
+# If the AnimationPlayer already has the clip under a different raw name, rename it.
+func _ensure_named(desired: String) -> void:
+	if _anim.has_animation(desired):
+		return
+	for raw in _anim.get_animation_list():
+		if raw == "RESET":
+			continue
+		var anim := _anim.get_animation(raw)
+		_anim.add_animation(desired, anim)
+		_anim.remove_animation(raw)
+		print("[Player] Renamed '", raw, "' -> '", desired, "'")
+		return
+
+# Load the first non-RESET animation from a FBX scene and store it under a logical name.
+func _load_clip(desired: String, path: String) -> void:
+	var scene: PackedScene = load(path) as PackedScene
+	if not scene:
+		print("[Player] Could not load: ", path)
+		return
+	var inst := scene.instance()
+	var ap := inst.find_node("AnimationPlayer", true, false) as AnimationPlayer
+	if not ap:
+		print("[Player] No AnimationPlayer in: ", path)
+		inst.free()
+		return
+	for raw in ap.get_animation_list():
+		if raw == "RESET":
+			continue
+		var anim := ap.get_animation(raw)
+		if _anim.has_animation(desired):
+			_anim.remove_animation(desired)
+		_anim.add_animation(desired, anim)
+		print("[Player] Loaded '", raw, "' as '", desired, "'")
+		break
+	inst.free()
 
 func _play(name: String) -> void:
 	if _anim == null or _current_anim == name:
 		return
-	var resolved := _resolve_anim(name)
-	if not _anim.has_animation(resolved):
+	if not _anim.has_animation(name):
 		return
-	_anim.play(resolved, ANIM_BLEND)
+	_anim.play(name, ANIM_BLEND)
 	_current_anim = name
 
 func _physics_process(delta: float) -> void:
