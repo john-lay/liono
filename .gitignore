@@ -2,6 +2,12 @@
 .godot/
 .nomedia
 
+# Blender backup files
+*.blend1
+
+# VS Code (contains machine-specific editor paths)
+.vscode/
+
 # Godot-specific ignores
 .import/
 export.cfg
