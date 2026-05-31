@@ -24,7 +24,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | Phase | Status | Notes |
 |---|---|---|
 | Phase 1 — Config | ✅ Done | project.godot, input actions, folder structure |
-| Phase 2 — Animations | ⚠️ Blocked | FBX re-exports still stretch/flicker; T-pose only for now |
+| Phase 2 — Animations | ⏸️ Paused | Capsule placeholder in use; model export issues unresolved |
 | Phase 3 — Player movement | ✅ Done | WASD + gravity + jump working |
 | Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm not yet added |
 | Phase 5 — Level | 🔶 Partial | Floor + lighting balanced; geometry not yet added |
@@ -34,33 +34,26 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 ## Open Issues
 
-### Issue 1 — GLB scale + textures (IN PROGRESS)
+### Issue 1 — Model export (PAUSED)
 
-FBX abandoned. Switched to GLB via **https://mixamo2gltf.com/** — combines Mixamo animations into a single GLB with all actions. Animations load correctly in Godot.
+Animation work is paused. `godot/assets/` has been cleared. Player uses a capsule `MeshInstance` placeholder. No animation code in `Player.gd`.
 
-**Current workaround in `Player.gd`:** `visual.scale = Vector3(0.01, 0.01, 0.01)` — the GLB is exported at centimetre scale (unapplied Blender armature transform).
+**Root cause of previous stretching:** Unapplied Blender armature transform. The armature object had a `0.01` scale at the object level (cm scale from Mixamo), never baked via `Ctrl+A → Apply All Transforms`. Godot's FBX importer couldn't propagate this correctly through the bone hierarchy, causing vertex stretching. GLB handled the scale without corrupting skinning but still imported at 100× size.
 
-**Textures:** messed up in current export — GLB likely missing embedded textures.
+**Additional GLB issues observed:**
+- Model origin not at feet — large Y offset on import
+- Idle animation had root motion on the Hips bone (Blender Y = Godot Z), causing the character to jump along Z during playback
 
-**Proper fix (re-export from mixamo2gltf):**
-1. In Blender: select Armature → `Ctrl+A → Apply All Transforms` before exporting, so scale is baked
-2. GLB export: set Textures → `Automatic` (embed) to include textures in the `.glb`
-3. Once fixed: remove `visual.scale` hack and re-tune `visual_y_offset`
-
-**GLB structure (Godot 3 import):**
-```
-liono.glb
-  Node2 (Spatial) — armature root; has z-offset 6.534 zeroed in code
-    Skeleton
-  AnimationPlayer — clip names: LionoIdle_3, LionoRun_7, LionoJump_4, etc.
-```
-Animation lookup uses keyword matching (`_find_anim`) so `"Idle"` → `"LionoIdle_3"` — robust to suffix changes on re-export.
+**Proper fix before re-importing:**
+1. In Blender: select Armature → `Ctrl+A → Apply All Transforms`, verify Scale = `(1,1,1)` in N panel
+2. Set armature origin to feet: `Shift+S → Cursor to World Origin`, then `Object → Set Origin → Origin to 3D Cursor`
+3. In the idle action: open Graph Editor, select Hips bone, delete Y Location keyframes (root motion)
+4. Re-export via mixamo2gltf.com with Textures → `Automatic` (embedded)
+5. Re-add `MeshInstance` → AnimationPlayer wiring in `Player.gd` (see animation state machine below)
 
 ---
 
-### Issue 2 — Legs partially in the ground
-
-**Status: RESOLVED.** `visual_y_offset` tuned to `0.5` in `Player.gd`.
+### Issue 2 — Camera has no wall-clipping protection
 
 ---
 
@@ -74,8 +67,8 @@ Animation lookup uses keyword matching (`_find_anim`) so `"Idle"` → `"LionoIdl
 
 ## Assets
 
-**Model:** `assets/models/liono.glb` — all animations combined via https://mixamo2gltf.com/  
-**Blender source:** `assets/models/Liono.blend`
+**Model:** `assets/models/Liono.blend` — Blender source (FBX + GLB exports pending fix; see Issue 1)  
+**Placeholder:** capsule `MeshInstance` inline in `Player.tscn` (no external asset)
 
 **Animations (all in liono.glb):**
 
@@ -119,11 +112,11 @@ Mouse captured on start; **Escape** toggles capture.
 ```
 godot/
   project.godot           — display, input actions, main scene
-  assets/models/          — all FBX files (Liono.fbx + Liono@*.fbx)
+  assets/                 — empty; model assets cleared pending Blender fix (see Issue 1)
   scenes/
-    Player.tscn           — KinematicBody + CapsuleShape + Liono@Idle.fbx instance
+    Player.tscn           — KinematicBody + CapsuleShape + CapsuleMesh placeholder
   scripts/
-    Player.gd             — movement, gravity, jump, animation loading + playback
+    Player.gd             — movement, gravity, jump (no animation code)
     CameraRig.gd          — orbit camera, mouse/gamepad, Escape to uncapture
     GridFloor.gd          — procedural 64×64 checkerboard grid texture at runtime
   levels/
@@ -142,16 +135,15 @@ godot/
 
 ---
 
-### Phase 2 — Import & Rig the Player ⚠️
+### Phase 2 — Import & Rig the Player ⏸️
 
-**Current design (swap-and-hide):**
-- `Liono@Idle.fbx` instanced in scene tree as "Liono" — the Idle visual
-- All other `@*.fbx` files instanced programmatically in `_ready()`, hidden
-- `_play(name)` hides current node, shows new node, calls `ap.play(raw)` on it
-- Loop flags set per-clip; Jump is one-shot; Idle/Run/Climbing loop
-- Animation driven by `_update_animation()` from velocity + lock-on state
+**Current state:** capsule placeholder. No model or animation code. Unblocked once Blender export is fixed (see Issue 1).
 
-**No AnimationTree state machine yet — direct play() calls only.**
+**Planned design when model is ready:**
+- Single `liono.glb` (all animations) instanced as child of Player
+- `AnimationPlayer` found via `find_node`; clip lookup by keyword (`_find_anim`) so suffix changes on re-export don't break it
+- Direct `AnimationPlayer.play()` calls — no AnimationTree state machine needed yet
+
 **State machine (for later, if needed):**
 ```
 [Idle] <---> [Run]
@@ -175,7 +167,7 @@ godot/
 ```
 KinematicBody (Player)
   CollisionShape (CapsuleShape r=0.35 h=1.0, offset y=0.85)
-  Liono (instance of Liono@Idle.fbx)
+  Visual (MeshInstance — CapsuleMesh r=0.35 h=1.0, offset y=0.85)
 ```
 
 **Script behaviour:**
@@ -183,7 +175,6 @@ KinematicBody (Player)
 - `TURN_SPEED = 12` lerp on Y rotation to face movement direction
 - Gravity `−25`, jump impulse `+10`, `move_and_slide(velocity, UP)`
 - Z-target active: character faces target, input becomes strafe/back
-- `visual_y_offset` export var to tune model feet position in Inspector
 
 ---
 
