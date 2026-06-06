@@ -5,8 +5,48 @@ const JUMP_IMPULSE := 10.0
 const GRAVITY := -25.0
 const TURN_SPEED := 12.0
 
+export var visual_y_offset: float = 0.0
+
 var velocity := Vector3.ZERO
 var camera_pivot: Spatial = null
+
+var _anim: AnimationPlayer = null
+var _current_anim := ""
+var _visual: Spatial = null
+
+func _ready() -> void:
+	_visual = get_node_or_null("Liono") as Spatial
+	if _visual:
+		_visual.translation.y = visual_y_offset
+
+	_anim = find_node("AnimationPlayer", true, false) as AnimationPlayer
+	if _anim:
+		_loop_all_clips()
+		_play("Idle")
+	else:
+		print("[Player] ERROR: no AnimationPlayer found")
+
+func _loop_all_clips() -> void:
+	for clip in _anim.get_animation_list():
+		_anim.get_animation(clip).loop = true
+
+func _find_anim(keyword: String) -> String:
+	if _anim == null:
+		return ""
+	var kw := keyword.to_lower()
+	for anim_name in _anim.get_animation_list():
+		if kw in anim_name.to_lower():
+			return anim_name
+	return ""
+
+func _play(keyword: String) -> void:
+	if _anim == null or _current_anim == keyword:
+		return
+	var anim_name := _find_anim(keyword)
+	if anim_name == "":
+		return
+	_anim.play(anim_name)
+	_current_anim = keyword
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -28,7 +68,9 @@ func _physics_process(delta: float) -> void:
 		right.y = 0.0
 		right = right.normalized()
 		move = fwd * -input.y + right * input.x
-		rotation.y = lerp_angle(rotation.y, atan2(move.x, move.z), TURN_SPEED * delta)
+		var target_angle := atan2(move.x, move.z)
+		if _visual:
+			_visual.rotation.y = lerp_angle(_visual.rotation.y, target_angle, TURN_SPEED * delta)
 
 	velocity.x = move.x * SPEED
 	velocity.z = move.z * SPEED
@@ -37,3 +79,10 @@ func _physics_process(delta: float) -> void:
 		velocity.y = JUMP_IMPULSE
 
 	velocity = move_and_slide(velocity, Vector3.UP)
+	_update_animation(input)
+
+func _update_animation(input: Vector2) -> void:
+	if not is_on_floor():
+		_play("Jump")
+		return
+	_play("Run" if input.length() > 0.05 else "Idle")

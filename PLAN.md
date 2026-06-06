@@ -24,8 +24,8 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | Phase | Status | Notes |
 |---|---|---|
 | Phase 1 — Config | ✅ Done | project.godot, input actions, folder structure |
-| Phase 2 — Animations | ⏸️ Paused | Capsule placeholder in use; model export issues unresolved |
-| Phase 3 — Player movement | ✅ Done | WASD + gravity + jump working |
+| Phase 2 — Animations | 🔶 Partial | Model in-game with Idle loop; Run/Jump FBX files not yet added |
+| Phase 3 — Player movement | ✅ Done | WASD + gravity + jump; visual rotates independently of physics body |
 | Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm not yet added |
 | Phase 5 — Level | 🔶 Partial | Floor + lighting balanced; geometry not yet added |
 | Phase 6 — Ladder | ❌ Not started | |
@@ -34,30 +34,15 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 ## Open Issues
 
-### Issue 1 — Model export (PAUSED)
+### Issue 1 — Only Idle animation available
 
-Animation work is paused. `godot/assets/` has been cleared. Player uses a capsule `MeshInstance` placeholder. No animation code in `Player.gd`.
+`assets/models/FBX 2013/` currently contains only `Idle.fbx`. Run, Jump, and all other Mixamo clips need to be downloaded and placed there. `export_glb.py` must be extended to import each FBX's action, rename it, and merge all actions into a single GLB export.
 
-**Root cause of previous stretching:** Unapplied Blender armature transform. The armature object had a `0.01` scale at the object level (cm scale from Mixamo), never baked via `Ctrl+A → Apply All Transforms`. Godot's FBX importer couldn't propagate this correctly through the bone hierarchy, causing vertex stretching. GLB handled the scale without corrupting skinning but still imported at 100× size.
-
-**Additional GLB issues observed:**
-- Model origin not at feet — large Y offset on import
-- Idle animation had root motion on the Hips bone (Blender Y = Godot Z), causing the character to jump along Z during playback
-
-**Proper fix before re-importing:**
-1. In Blender: select Armature → `Ctrl+A → Apply All Transforms`, verify Scale = `(1,1,1)` in N panel
-2. Set armature origin to feet: `Shift+S → Cursor to World Origin`, then `Object → Set Origin → Origin to 3D Cursor`
-3. In the idle action: open Graph Editor, select Hips bone, delete Y Location keyframes (root motion)
-4. Re-export via mixamo2gltf.com with Textures → `Automatic` (embedded)
-5. Re-add `MeshInstance` → AnimationPlayer wiring in `Player.gd` (see animation state machine below)
+**Animation clips needed:** Run, Jump, Walk, Walk-Backwards, Left-Turn, Right-Turn, Start-Climbing-Ladder, Climbing-Ladder, Climbing-To-Top
 
 ---
 
 ### Issue 2 — Camera has no wall-clipping protection
-
----
-
-### Issue 3 — Camera has no wall-clipping protection
 
 **Status:** Low priority for now. The current camera (plain `Camera` node offset 5 m along +Z from the pivot) works but will clip through walls when geometry is added in Phase 5.
 
@@ -67,24 +52,29 @@ Animation work is paused. `godot/assets/` has been cleared. Player uses a capsul
 
 ## Assets
 
-**Model:** `assets/models/Liono.blend` — Blender source (FBX + GLB exports pending fix; see Issue 1)  
-**Placeholder:** capsule `MeshInstance` inline in `Player.tscn` (no external asset)
+**Model:** `assets/models/Liono.blend` — Blender source  
+**Export script:** `tools/export_glb.py` — headless Blender pipeline (run via CLI, see below)  
+**GLB output:** `godot/assets/models/liono.glb` — embedded textures, single Idle animation
 
-**Animations (all in liono.glb):**
+**Animations needed in liono.glb (keyword matched by Player.gd `_find_anim`):**
 
-| Keyword | GLB clip name | Use |
-|---|---|---|
-| `Idle` | `LionoIdle_3` | Standing still |
-| `Walk` | `LionoWalk_9` | Z-target walking |
-| `Walking` | `LionoWalking_11` | Free-cam walk (if needed) |
-| `Run` | `LionoRun_7` | Default movement |
-| `Jump` | `LionoJump_4` | One-shot airborne |
-| `Walk-Backwards` | `LionoWalk-Backwards_10` | Z-target back |
-| `Left-Turn` | `LionoLeft-Turn_5` | Z-target strafe left |
-| `Right-Turn` | `LionoRight-Turn_6` | Z-target strafe right |
-| `Start-Climbing-Ladder` | `LionoStart-Climbing-Ladder_8` | Ladder entry |
-| `Climbing-Ladder` | `LionoClimbing-Ladder_1` | Ladder loop |
-| `Climbing-To-Top` | `LionoClimbing-To-Top_2` | Ladder dismount |
+| Keyword | Use |
+|---|---|
+| `Idle` | Standing still — **present** |
+| `Run` | Default movement |
+| `Jump` | One-shot airborne |
+| `Walk` | Z-target walking |
+| `Walk-Backwards` | Z-target back |
+| `Left-Turn` | Z-target strafe left |
+| `Right-Turn` | Z-target strafe right |
+| `Start-Climbing-Ladder` | Ladder entry |
+| `Climbing-Ladder` | Ladder loop |
+| `Climbing-To-Top` | Ladder dismount |
+
+**To re-export the GLB:**
+```
+"D:\Program Files\Blender Foundation\Blender 2.91\blender.exe" --background --python D:/Repo/liono/tools/export_glb.py
+```
 
 ---
 
@@ -111,16 +101,22 @@ Mouse captured on start; **Escape** toggles capture.
 
 ```
 godot/
-  project.godot           — display, input actions, main scene
-  assets/                 — empty; model assets cleared pending Blender fix (see Issue 1)
+  project.godot               — display, input actions, main scene
+  assets/models/liono.glb     — exported character model (textures embedded, Idle animation)
   scenes/
-    Player.tscn           — KinematicBody + CapsuleShape + CapsuleMesh placeholder
+    Player.tscn               — KinematicBody + CapsuleShape + liono.glb instance
   scripts/
-    Player.gd             — movement, gravity, jump (no animation code)
-    CameraRig.gd          — orbit camera, mouse/gamepad, Escape to uncapture
-    GridFloor.gd          — procedural 64×64 checkerboard grid texture at runtime
+    Player.gd                 — movement, gravity, jump, animation state, visual rotation
+    CameraRig.gd              — orbit camera, mouse/gamepad, Escape to uncapture
+    GridFloor.gd              — procedural 64×64 checkerboard grid texture at runtime
   levels/
-    Level01.tscn          — floor, lighting, WorldEnvironment (fog), Player + CameraRig
+    Level01.tscn              — floor, lighting, WorldEnvironment (fog), Player + CameraRig
+assets/
+  models/Liono.blend          — Blender source
+  models/FBX 2013/Idle.fbx   — Mixamo source animation (only Idle so far)
+  textures/                   — PNG texture maps (body, hair, eye, claw, sword)
+tools/
+  export_glb.py               — headless Blender export pipeline
 ```
 
 ---
@@ -135,14 +131,24 @@ godot/
 
 ---
 
-### Phase 2 — Import & Rig the Player ⏸️
+### Phase 2 — Import & Rig the Player 🔶
 
-**Current state:** capsule placeholder. No model or animation code. Unblocked once Blender export is fixed (see Issue 1).
+**Current state:** `liono.glb` in-game with Idle animation looping. Run/Jump not yet available (FBX source files missing — see Issue 1).
 
-**Planned design when model is ready:**
-- Single `liono.glb` (all animations) instanced as child of Player
-- `AnimationPlayer` found via `find_node`; clip lookup by keyword (`_find_anim`) so suffix changes on re-export don't break it
-- Direct `AnimationPlayer.play()` calls — no AnimationTree state machine needed yet
+**Pipeline:** headless Blender Python script (`tools/export_glb.py`) handles all transforms:
+- Applies armature scale (0.01, cm→m) and FBX rotation correction
+- Centers character in XZ using skeleton bounding box (was 3.2 m off-centre, causing visual orbit)
+- Lifts rig so toes sit at Y = 0
+- Strips Hips location FCurves (removes Mixamo root-motion jump)
+- Assigns PNG textures via Principled BSDF nodes
+- Exports to `godot/assets/models/liono.glb`
+
+**Design:**
+- Single `liono.glb` (all animations) instanced as "Liono" child of Player
+- `AnimationPlayer` found via `find_node`; clip lookup by keyword (`_find_anim`) so names on re-export don't break it
+- All clips set to `loop = true` at runtime (glTF carries no loop flag)
+- Visual child rotates independently of the KinematicBody (avoids arc caused by offset origin)
+- `visual_y_offset = 0.5` set in Level01.tscn inspector to tune feet-to-floor alignment
 
 **State machine (for later, if needed):**
 ```
