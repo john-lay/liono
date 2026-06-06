@@ -24,7 +24,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | Phase | Status | Notes |
 |---|---|---|
 | Phase 1 — Config | ✅ Done | project.godot, input actions, folder structure |
-| Phase 2 — Animations | 🔶 Partial | Model in-game with Idle loop; Run/Jump FBX files not yet added |
+| Phase 2 — Animations | 🔶 Partial | 8 clips in GLB; Climbing-To-Top FBX not yet sourced |
 | Phase 3 — Player movement | ✅ Done | WASD + gravity + jump; visual rotates independently of physics body |
 | Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm not yet added |
 | Phase 5 — Level | 🔶 Partial | Floor + lighting balanced; geometry not yet added |
@@ -34,11 +34,9 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 ## Open Issues
 
-### Issue 1 — Only Idle animation available
+### Issue 1 — Climbing-To-Top animation missing
 
-`assets/models/FBX 2013/` currently contains only `Idle.fbx`. Run, Jump, and all other Mixamo clips need to be downloaded and placed there. `export_glb.py` must be extended to import each FBX's action, rename it, and merge all actions into a single GLB export.
-
-**Animation clips needed:** Run, Jump, Walk, Walk-Backwards, Left-Turn, Right-Turn, Start-Climbing-Ladder, Climbing-Ladder, Climbing-To-Top
+8 of 9 planned clips are in `liono.glb`. The final clip, `Climbing-To-Top` (ladder dismount), has not yet been sourced from Mixamo. Once the FBX is placed in `assets/models/FBX 2013/`, add it to `EXTRA_ANIMS` in `export_glb.py` and re-run the export.
 
 ---
 
@@ -54,22 +52,21 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 **Model:** `assets/models/Liono.blend` — Blender source  
 **Export script:** `tools/export_glb.py` — headless Blender pipeline (run via CLI, see below)  
-**GLB output:** `godot/assets/models/liono.glb` — embedded textures, single Idle animation
+**GLB output:** `godot/assets/models/liono.glb` — embedded textures, 8 animation clips
 
-**Animations needed in liono.glb (keyword matched by Player.gd `_find_anim`):**
+**Animations in liono.glb (keyword matched by Player.gd `_find_anim`):**
 
-| Keyword | Use |
-|---|---|
-| `Idle` | Standing still — **present** |
-| `Run` | Default movement |
-| `Jump` | One-shot airborne |
-| `Walk` | Z-target walking |
-| `Walk-Backwards` | Z-target back |
-| `Left-Turn` | Z-target strafe left |
-| `Right-Turn` | Z-target strafe right |
-| `Start-Climbing-Ladder` | Ladder entry |
-| `Climbing-Ladder` | Ladder loop |
-| `Climbing-To-Top` | Ladder dismount |
+| Keyword | Use | Status |
+|---|---|---|
+| `Idle` | Standing still | ✅ |
+| `Walk` | Free movement | ✅ |
+| `Walk-Backwards` | Z-target back | ✅ |
+| `Left-Turn` | Z-target strafe left | ✅ |
+| `Right-Turn` | Z-target strafe right | ✅ |
+| `Jump` | One-shot airborne | ✅ |
+| `Start-Climbing-Ladder` | Ladder entry (one-shot) | ✅ |
+| `Climbing-Ladder` | Ladder loop | ✅ |
+| `Climbing-To-Top` | Ladder dismount (one-shot) | ❌ FBX missing |
 
 **To re-export the GLB:**
 ```
@@ -113,7 +110,7 @@ godot/
     Level01.tscn              — floor, lighting, WorldEnvironment (fog), Player + CameraRig
 assets/
   models/Liono.blend          — Blender source
-  models/FBX 2013/Idle.fbx   — Mixamo source animation (only Idle so far)
+  models/FBX 2013/           — Mixamo source FBX animations (8 clips; Climbing-To-Top missing)
   textures/                   — PNG texture maps (body, hair, eye, claw, sword)
 tools/
   export_glb.py               — headless Blender export pipeline
@@ -133,28 +130,31 @@ tools/
 
 ### Phase 2 — Import & Rig the Player 🔶
 
-**Current state:** `liono.glb` in-game with Idle animation looping. Run/Jump not yet available (FBX source files missing — see Issue 1).
+**Current state:** `liono.glb` in-game with 8 animation clips. Climbing-To-Top FBX not yet sourced (see Issue 1).
 
 **Pipeline:** headless Blender Python script (`tools/export_glb.py`) handles all transforms:
+- Imports Idle.fbx as base mesh + skeleton; imports remaining FBXs for actions only
 - Applies armature scale (0.01, cm→m) and FBX rotation correction
-- Centers character in XZ using skeleton bounding box (was 3.2 m off-centre, causing visual orbit)
+- Centers character in XZ using skeleton bone bounding box (was 3.2 m off-centre, causing visual orbit)
 - Lifts rig so toes sit at Y = 0
-- Strips Hips location FCurves (removes Mixamo root-motion jump)
+- Strips Hips location FCurves from all actions (removes Mixamo root-motion jump)
+- Pushes all actions into NLA tracks; exports via `export_nla_strips=True`
 - Assigns PNG textures via Principled BSDF nodes
 - Exports to `godot/assets/models/liono.glb`
 
 **Design:**
 - Single `liono.glb` (all animations) instanced as "Liono" child of Player
-- `AnimationPlayer` found via `find_node`; clip lookup by keyword (`_find_anim`) so names on re-export don't break it
-- All clips set to `loop = true` at runtime (glTF carries no loop flag)
-- Visual child rotates independently of the KinematicBody (avoids arc caused by offset origin)
+- `AnimationPlayer` found via `find_node`; clip lookup via `_find_anim` — exact match preferred, substring fallback
+- All clips loop except Jump and any one-shot transitions (glTF carries no loop flag; set at runtime)
+- `_is_jumping` latch holds Jump state through velocity apex dead zone; clears on `is_on_floor()`
+- Visual child (`_visual`) rotates independently of the KinematicBody (avoids arc caused by offset origin)
 - `visual_y_offset = 0.5` set in Level01.tscn inspector to tune feet-to-floor alignment
 
 **State machine (for later, if needed):**
 ```
-[Idle] <---> [Run]
+[Idle] <---> [Walk]
                |
-             [Jump]  (one-shot, returns to Idle/Run)
+             [Jump]  (one-shot, returns to Idle/Walk)
 
 [Z-Target active]
   [Idle] <---> [Walk-Backwards]
@@ -173,7 +173,7 @@ tools/
 ```
 KinematicBody (Player)
   CollisionShape (CapsuleShape r=0.35 h=1.0, offset y=0.85)
-  Visual (MeshInstance — CapsuleMesh r=0.35 h=1.0, offset y=0.85)
+  Liono (liono.glb instance — visual only, no physics)
 ```
 
 **Script behaviour:**
@@ -237,7 +237,7 @@ CameraRig (Spatial + CameraRig.gd)
 | 1 | Phase 1 — Config | ✅ |
 | 2 | Phase 3 — Movement | ✅ |
 | 3 | Phase 4 — Camera | ✅ |
-| 4 | Phase 2 — Animations | ⚠️ Blocked |
+| 4 | Phase 2 — Animations | 🔶 Partial |
 | 5 | Phase 5 — Level geometry | 🔶 Partial |
 | 6 | Phase 6 — Ladder | ❌ |
 
