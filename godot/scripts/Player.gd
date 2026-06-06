@@ -13,6 +13,7 @@ var camera_pivot: Spatial = null
 var _anim: AnimationPlayer = null
 var _current_anim := ""
 var _visual: Spatial = null
+var _is_jumping := false
 
 func _ready() -> void:
 	_visual = get_node_or_null("Liono") as Spatial
@@ -28,16 +29,19 @@ func _ready() -> void:
 
 func _loop_all_clips() -> void:
 	for clip in _anim.get_animation_list():
-		_anim.get_animation(clip).loop = true
+		_anim.get_animation(clip).loop = not ("jump" in clip.to_lower())
 
 func _find_anim(keyword: String) -> String:
 	if _anim == null:
 		return ""
 	var kw := keyword.to_lower()
+	var partial := ""
 	for anim_name in _anim.get_animation_list():
-		if kw in anim_name.to_lower():
+		if anim_name.to_lower() == kw:
 			return anim_name
-	return ""
+		if partial == "" and kw in anim_name.to_lower():
+			partial = anim_name
+	return partial
 
 func _play(keyword: String) -> void:
 	if _anim == null or _current_anim == keyword:
@@ -82,7 +86,11 @@ func _physics_process(delta: float) -> void:
 	_update_animation(input)
 
 func _update_animation(input: Vector2) -> void:
-	if not is_on_floor():
+	if is_on_floor():
+		_is_jumping = false
+	elif abs(velocity.y) > 2.0:
+		_is_jumping = true
+	if _is_jumping:
 		_play("Jump")
 		return
-	_play("Run" if input.length() > 0.05 else "Idle")
+	_play("Walk" if input.length() > 0.05 else "Idle")
