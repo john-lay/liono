@@ -85,6 +85,7 @@ EXTRA_ANIMS = [
     ("Walk Lock.fbx",            "Walk-Lock"),
     ("Left Turn Lock.fbx",       "Left-Turn-Lock"),
     ("Right Turn Lock.fbx",      "Right-Turn-Lock"),
+    ("Stable Sword Outward Slash.fbx", "Slash"),
 ]
 
 for fbx_file, action_name in EXTRA_ANIMS:
