@@ -24,7 +24,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | Phase | Status | Notes |
 |---|---|---|
 | Phase 1 — Config | ✅ Done | project.godot, input actions, folder structure |
-| Phase 2 — Animations | 🔶 Partial | 8 clips in GLB; Climbing-To-Top FBX not yet sourced |
+| Phase 2 — Animations | ✅ Done | 9 clips in GLB |
 | Phase 3 — Player movement | ✅ Done | WASD + gravity + jump; visual rotates independently of physics body |
 | Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm not yet added |
 | Phase 5 — Level | 🔶 Partial | Floor + lighting balanced; geometry not yet added |
@@ -34,13 +34,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 ## Open Issues
 
-### Issue 1 — Climbing-To-Top animation missing
-
-8 of 9 planned clips are in `liono.glb`. The final clip, `Climbing-To-Top` (ladder dismount), has not yet been sourced from Mixamo. Once the FBX is placed in `assets/models/FBX 2013/`, add it to `EXTRA_ANIMS` in `export_glb.py` and re-run the export.
-
----
-
-### Issue 2 — Camera has no wall-clipping protection
+### Issue 1 — Camera has no wall-clipping protection
 
 **Status:** Low priority for now. The current camera (plain `Camera` node offset 5 m along +Z from the pivot) works but will clip through walls when geometry is added in Phase 5.
 
@@ -52,7 +46,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 **Model:** `assets/models/Liono.blend` — Blender source  
 **Export script:** `tools/export_glb.py` — headless Blender pipeline (run via CLI, see below)  
-**GLB output:** `godot/assets/models/liono.glb` — embedded textures, 8 animation clips
+**GLB output:** `godot/assets/models/liono.glb` — embedded textures, 9 animation clips
 
 **Animations in liono.glb (keyword matched by Player.gd `_find_anim`):**
 
@@ -66,7 +60,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | `Jump` | One-shot airborne | ✅ |
 | `Start-Climbing-Ladder` | Ladder entry (one-shot) | ✅ |
 | `Climbing-Ladder` | Ladder loop | ✅ |
-| `Climbing-To-Top` | Ladder dismount (one-shot) | ❌ FBX missing |
+| `Climbing-To-Top` | Ladder dismount (one-shot) | ✅ |
 
 **To re-export the GLB:**
 ```
@@ -110,7 +104,7 @@ godot/
     Level01.tscn              — floor, lighting, WorldEnvironment (fog), Player + CameraRig
 assets/
   models/Liono.blend          — Blender source
-  models/FBX 2013/           — Mixamo source FBX animations (8 clips; Climbing-To-Top missing)
+  models/FBX 2013/           — Mixamo source FBX animations (9 clips)
   textures/                   — PNG texture maps (body, hair, eye, claw, sword)
 tools/
   export_glb.py               — headless Blender export pipeline
@@ -130,7 +124,7 @@ tools/
 
 ### Phase 2 — Import & Rig the Player 🔶
 
-**Current state:** `liono.glb` in-game with 8 animation clips. Climbing-To-Top FBX not yet sourced (see Issue 1).
+**Current state:** `liono.glb` in-game with 9 animation clips (all planned clips present).
 
 **Pipeline:** headless Blender Python script (`tools/export_glb.py`) handles all transforms:
 - Imports Idle.fbx as base mesh + skeleton; imports remaining FBXs for actions only

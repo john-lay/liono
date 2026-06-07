@@ -29,7 +29,9 @@ func _ready() -> void:
 
 func _loop_all_clips() -> void:
 	for clip in _anim.get_animation_list():
-		_anim.get_animation(clip).loop = not ("jump" in clip.to_lower())
+		var lower := clip.to_lower()
+		var one_shot := "jump" in lower or "start" in lower or "to-top" in lower
+		_anim.get_animation(clip).loop = not one_shot
 
 func _find_anim(keyword: String) -> String:
 	if _anim == null:
