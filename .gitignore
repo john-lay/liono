@@ -8,6 +8,9 @@
 # VS Code (contains machine-specific editor paths)
 .vscode/
 
+# Claude Code memory/session files
+.claude/
+
 # Godot-specific ignores
 .import/
 export.cfg
