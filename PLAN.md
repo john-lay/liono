@@ -26,21 +26,13 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | Phase 1 — Config | ✅ Done | project.godot, input actions, folder structure |
 | Phase 2 — Animations | ✅ Done | 9 clips in GLB |
 | Phase 3 — Player movement | ✅ Done | WASD + gravity + jump; visual rotates independently of physics body |
-| Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm not yet added |
+| Phase 4 — Camera | ✅ Done | Orbit camera; SpringArm wall-clip protection added |
 | Phase 5 — Level | 🔶 Partial | Floor + lighting balanced; geometry not yet added |
 | Phase 6 — Ladder | ❌ Not started | |
 
 ---
 
 ## Open Issues
-
-### Issue 1 — Camera has no wall-clipping protection
-
-**Status:** Low priority for now. The current camera (plain `Camera` node offset 5 m along +Z from the pivot) works but will clip through walls when geometry is added in Phase 5.
-
-**Fix when needed:** Wrap the Camera in a `SpringArm` node inside `CameraRig/CameraPivot`. Set `SpringArm.spring_length = 5.0` and make `Camera` a child with no extra offset. The SpringArm handles collision automatically.
-
----
 
 ## Assets
 
@@ -194,7 +186,6 @@ CameraRig (Spatial + CameraRig.gd)
 - Escape key toggles mouse capture
 
 **Still needed:**
-- SpringArm for wall-clip protection (Issue 3)
 - Z-target camera behaviour (interpolate to frame player + target)
 
 ---

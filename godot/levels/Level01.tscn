@@ -62,8 +62,10 @@ target_path = NodePath("../Player")
 
 [node name="CameraPivot" type="Spatial" parent="CameraRig"]
 
-[node name="Camera" type="Camera" parent="CameraRig/CameraPivot"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5 )
+[node name="SpringArm" type="SpringArm" parent="CameraRig/CameraPivot"]
+spring_length = 5.0
+
+[node name="Camera" type="Camera" parent="CameraRig/CameraPivot/SpringArm"]
 
 [node name="Geometry" type="Spatial" parent="."]
 
