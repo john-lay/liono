@@ -8,7 +8,7 @@ A short 3D action adventure demo built in the style of *The Legend of Zelda: Oca
 
 - Third-person camera with mouse and gamepad support
 - Camera-relative WASD movement with gravity and jumping
-- Full character model with 9 animations: Idle, Walk, Walk-Backwards, Left-Turn, Right-Turn, Jump, Start-Climbing-Ladder, Climbing-Ladder, Climbing-To-Top
+- Full character model with 12 animations: Idle, Walk, Walk-Lock, Walk-Backwards, Left-Turn, Left-Turn-Lock, Right-Turn, Right-Turn-Lock, Jump, Start-Climbing-Ladder, Climbing-Ladder, Climbing-To-Top
 - Procedural grid floor with N64-style fog
 
 ## Tech Stack

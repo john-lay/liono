@@ -82,6 +82,9 @@ EXTRA_ANIMS = [
     ("Start Climbing Ladder.fbx","Start-Climbing-Ladder"),
     ("Climbing Ladder.fbx",      "Climbing-Ladder"),
     ("Climbing To Top.fbx",      "Climbing-To-Top"),
+    ("Walk Lock.fbx",            "Walk-Lock"),
+    ("Left Turn Lock.fbx",       "Left-Turn-Lock"),
+    ("Right Turn Lock.fbx",      "Right-Turn-Lock"),
 ]
 
 for fbx_file, action_name in EXTRA_ANIMS:

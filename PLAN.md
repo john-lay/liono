@@ -38,7 +38,7 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 
 **Model:** `assets/models/Liono.blend` — Blender source  
 **Export script:** `tools/export_glb.py` — headless Blender pipeline (run via CLI, see below)  
-**GLB output:** `godot/assets/models/liono.glb` — embedded textures, 9 animation clips
+**GLB output:** `godot/assets/models/liono.glb` — embedded textures, 12 animation clips
 
 **Animations in liono.glb (keyword matched by Player.gd `_find_anim`):**
 
@@ -53,6 +53,9 @@ A short playable demo in the style of Zelda: Ocarina of Time, built in Godot 3.x
 | `Start-Climbing-Ladder` | Ladder entry (one-shot) | ✅ |
 | `Climbing-Ladder` | Ladder loop | ✅ |
 | `Climbing-To-Top` | Ladder dismount (one-shot) | ✅ |
+| `Walk-Lock` | Z-target cautious forward | ✅ |
+| `Left-Turn-Lock` | Z-target strafe left | ✅ |
+| `Right-Turn-Lock` | Z-target strafe right | ✅ |
 
 **To re-export the GLB:**
 ```
